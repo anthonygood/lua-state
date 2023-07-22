@@ -41,18 +41,18 @@ describe('StateMachine', function()
         return data.foo
       end)
 
-      expect(machine.currentState()).to.be('idle');
+      expect(machine.currentState()).to.be('idle')
       machine.process({})
-      expect(machine.currentState()).to.be('idle');
-      machine.process({ foo = true });
-      expect(machine.currentState()).to.be('walk');
-      machine.process({ key = '<walk>' });
-      expect(machine.currentState()).to.be('walk');
+      expect(machine.currentState()).to.be('idle')
+      machine.process({ foo = true })
+      expect(machine.currentState()).to.be('walk')
+      machine.process({ key = '<walk>' })
+      expect(machine.currentState()).to.be('walk')
 
       machine.state('walk').transitionTo('idle').when(function (data) return data.action == '<finished>' end);
-      machine.process({ action = '<finished>' });
+      machine.process({ action = '<finished>' })
 
-      expect(machine.currentState()).to.be('idle');
+      expect(machine.currentState()).to.be('idle')
   end)
 
   it('works with yet more complex state graph example', function ()
@@ -64,22 +64,22 @@ describe('StateMachine', function()
       .state('jumping')
       .transitionTo('idle').when(function (data) return data.idle end).orWhen(function (data) return data.key == '<idle>' end)
 
-    expect(machine.currentState()).to.be('idle');
+    expect(machine.currentState()).to.be('idle')
 
-    machine.process({ walk = true });
-    expect(machine.currentState()).to.be('walking');
+    machine.process({ walk = true })
+    expect(machine.currentState()).to.be('walking')
 
-    machine.process({ key = '<idle>' });
-    expect(machine.currentState()).to.be('walking');
+    machine.process({ key = '<idle>' })
+    expect(machine.currentState()).to.be('walking')
 
     machine.process({ jump = true })
-    expect(machine.currentState()).to.be('jumping');
+    expect(machine.currentState()).to.be('jumping')
 
     -- Can't transition to walking from jumping
     machine.process({ key = '<walk>' })
-    expect(machine.currentState()).to.be('jumping');
+    expect(machine.currentState()).to.be('jumping')
 
     machine.process({ key = '<idle>' });
-    expect(machine.currentState()).to.be('idle');
-  end);
+    expect(machine.currentState()).to.be('idle')
+  end)
 end)
