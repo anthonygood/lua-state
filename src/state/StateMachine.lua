@@ -90,7 +90,7 @@ local StateMachine = function (initialState)
   end
   machine.state = function (stateName)
     local nominatedState = states[stateName]
-    assert(nominatedState, 'No state found with name "' .. stateName .. '" in ' .. states)
+    assert(nominatedState, 'No state found with name "' .. stateName)
 
     homeState, destState = nominatedState, nominatedState
     return machine
