@@ -82,4 +82,44 @@ describe('StateMachine', function()
     machine.process({ key = '<idle>' });
     expect(machine.currentState()).to.be('idle')
   end)
+
+  describe('initialising new state', function ()
+    it('invokes callback when transitioning to new state', function ()
+      local mock = lust.spy(function () end)
+      local machine = StateMachine('idle')
+        .transitionTo('walk').when(function (data) return data.walk end).andThen(mock)
+
+      expect(#mock).to.equal(0)
+
+      machine.process({ walk = true })
+      expect(#mock).to.equal(1)
+    end)
+    it('also works with the inverse construction', function ()
+      local mock = lust.spy(function () end)
+      local machine = StateMachine('idle')
+        .transitionTo('walk').andThen(mock).when(function (data) return data.walk end)
+
+      expect(#mock).to.equal(0)
+
+      machine.process({ walk = true })
+      expect(#mock).to.equal(1)
+    end)
+    it('initialises default state if needed', function ()
+      local init1 = lust.spy(function () end)
+      local init2 = lust.spy(function () end)
+      local machine = StateMachine('idle').andThen(init1)
+        .transitionTo('walk').andThen(init2).when(function (data) return data.walk end)
+
+      expect(#init1).to.equal(0)
+      expect(#init2).to.equal(0)
+
+      machine.init()
+      expect(#init1).to.equal(1)
+      expect(#init2).to.equal(0)
+
+      machine.process({ walk = true })
+      expect(#init1).to.equal(1)
+      expect(#init2).to.equal(1)
+    end)
+  end)
 end)
