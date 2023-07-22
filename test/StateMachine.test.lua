@@ -148,6 +148,7 @@ describe('StateMachine', function()
 
       machine.process({})
       -- now walk should tick once
+      expect(machine.currentState()).to.be('walk')
       expect(#tick1).to.equal(2)
       expect(#tick2).to.equal(1)
     end)
@@ -188,6 +189,108 @@ describe('StateMachine', function()
       expect(#walkInit).to.equal(1)
       expect(#walkTick).to.equal(1)
       expect(#neverCall).to.equal(0)
+    end)
+
+    it('throws if you declare invalid transition', function ()
+      expect(function ()
+        return StateMachine('idle')
+          .transitionTo('walk')
+          .state('walk').when(function (data) return data.walk end).andThen(lust.spy(function() end))
+      end).to.fail()
+    end)
+  end)
+
+  describe('forAtLeast', function ()
+    it('forAtLeast can declare minTicks before state can transition', function ()
+      local idleInit = lust.spy(function () end)
+      local walkInit = lust.spy(function () end)
+      local walkTick = lust.spy(function () end)
+
+      -- No idle tick callback, so should no-op for two ticks
+      local machine = StateMachine('idle').andThen(idleInit).forAtLeast(2)
+        .transitionTo('walk').when(function (data) return data.walk end).orWhen(function (data) return data.run end)
+        -- Expect walkTick to be called for 4 ticks
+        .andThen(walkInit).tick(walkTick).forAtLeast(4)
+        .state('walk').transitionTo('idle').when(function (data) return not data.walk end)
+        .init()
+
+      expect(#idleInit).to.equal(1)
+      expect(machine.currentState()).to.be('idle')
+
+      -- First tick
+      machine.process({ walk = true })
+      expect(machine.currentState()).to.be('idle');
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(0)
+
+      -- Second tick
+      machine.process({ walk = true })
+      expect(machine.currentState()).to.be('idle')
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(0)
+
+      -- Third tick
+      machine.process({ walk = true })
+      expect(machine.currentState()).to.be('walk');
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(0)
+
+      -- Fourth tick - conditions met to return to idle, but should tick at least 4 times
+      machine.process({ walk = false })
+      expect(machine.currentState()).to.be('walk');
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(1)
+
+      -- Fifth tick
+      machine.process({ walk = false })
+      expect(machine.currentState()).to.be('walk')
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(2)
+
+      -- Sixth tick
+      machine.process({ walk = false })
+      expect(machine.currentState()).to.be('walk')
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(3)
+
+      -- Seventh tick
+      machine.process({ walk = false })
+      expect(machine.currentState()).to.be('walk')
+      expect(#idleInit).to.equal(1)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(4)
+
+      -- Eighth tick
+      machine.process({ walk = false })
+      expect(machine.currentState()).to.be('idle')
+      expect(#idleInit).to.equal(2)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(4)
+
+      -- Ninth tick - and checking minTicks for transition back again...
+      machine.process({ walk = true })
+      expect(machine.currentState()).to.be('idle')
+      expect(#idleInit).to.equal(2)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(4)
+
+      -- Tenth tick
+      machine.process({ walk = true })
+      expect(machine.currentState()).to.be('idle')
+      expect(#idleInit).to.equal(2)
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(4)
+
+      -- Eleventh tick
+      machine.process({ walk = true })
+      expect(machine.currentState()).to.be('walk')
+      expect(#idleInit).to.equal(2)
+      expect(#walkInit).to.equal(2)
+      expect(#walkTick).to.equal(4)
     end)
   end)
 end)

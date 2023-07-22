@@ -1,11 +1,12 @@
 local ticker = function (callback)
   local count = 0
+  local tickCount = function () return count end
+  local reset = function () count = 0 end
   local tick = function (data)
     if callback then callback(data) end
     count = count + 1
   end
-  local tickCount = function () return count end
-  return tick, tickCount
+  return tick, tickCount, reset
 end
 
 local find = function (table, fn)
@@ -17,18 +18,40 @@ end
 
 local State = function (name, minTicks, onTick)
   assert(name, 'State must be assigned a name')
-  local tick, tickCount = ticker(onTick)
+  local tick, tickCount, resetTicks = ticker(onTick)
 
-  return {
+  local subscriptions = {}
+  local state = {
     name = name,
     minTicks = minTicks or 0,
     tick = tick,
     tickCount = tickCount,
     transitions = {},
-    subscriptions = {},
+    subscriptions = subscriptions,
     init = function () return end,
     exit = function (any) return end,
   }
+  local initialiser = function(fn) return function (data)
+    if (fn) then fn(data) end
+    for _, callback in pairs(subscriptions) do
+      callback(data)
+    end
+
+    resetTicks()
+    end
+  end
+
+  state.init = initialiser()
+  state.onInit = function(onInit)
+    state.init = initialiser(onInit)
+  end
+
+  -- override tick callback
+  state.onTick = function(onTick)
+    state.tick, state.tickCount = ticker(onTick)
+  end
+
+  return state
 end
 
 local StateMachine = function (initialState)
@@ -73,11 +96,11 @@ local StateMachine = function (initialState)
   machine.when = when(machine)
   machine.orWhen = when(machine)
   machine.andThen = function (fn)
-    destState.init = fn
+    destState.onInit(fn)
     return machine
   end
   machine.tick = function (fn)
-    destState.tick = fn
+    destState.onTick(fn)
     return machine
   end
   machine.exit = function (fn)
@@ -108,13 +131,11 @@ local StateMachine = function (initialState)
       return transition.predicate(data)
     end)
 
-
     if (transition and tickCount() >= minTicks) then
       currentState.exit(data)
       local nextState = states[transition.state]
       assert(nextState, 'No state found with name ' .. transition.state);
-
-      nextState.init()
+      nextState.init(data)
       currentStateName = nextState.name
     else
       currentState.tick(data)
