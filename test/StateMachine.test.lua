@@ -122,4 +122,34 @@ describe('StateMachine', function()
       expect(#init2).to.equal(1)
     end)
   end)
+
+  describe('tick state', function ()
+    it('calls tick function for each process() call where state does not change', function ()
+      local tick1 = lust.spy(function () end)
+      local tick2 = lust.spy(function () end)
+
+      local machine = StateMachine('idle').tick(tick1)
+        .transitionTo('walk').when(function (data) return data.walk end)
+        .state('walk').tick(tick2)
+
+      expect(#tick1).to.equal(0)
+      expect(#tick2).to.equal(0)
+
+      machine.process({ walk = false });
+      machine.process({ walk = false });
+
+      expect(#tick1).to.equal(2)
+      expect(#tick2).to.equal(0)
+
+      machine.process({ walk = true });
+      -- neither idle nor walk state should tick on transition
+      expect(#tick1).to.equal(2)
+      expect(#tick2).to.equal(0)
+
+      machine.process({})
+      -- now walk should tick once
+      expect(#tick1).to.equal(2)
+      expect(#tick2).to.equal(1)
+    end)
+  end)
 end)
