@@ -376,8 +376,6 @@ describe('StateMachine', function()
 
       machine.process({ walk = true })
 
-      print('#walkInit ' .. #walkInit .. ' #walkTick' .. #walkTick)
-
       expect(#idleInit).to.equal(2)
       expect(#idleTick).to.equal(4)
 
