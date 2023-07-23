@@ -294,20 +294,10 @@ describe('StateMachine', function()
     end)
 
     it('accepts function to define minTicks for transition state', function ()
-      local idleInit = lust.spy(function ()
-        print('>idleInit')
-      end)
-      local idleCount = 0
-      local idleTick = lust.spy(function ()
-        idleCount = idleCount + 1
-        print('>idleTick ' .. idleCount)
-      end)
-      local walkInit = lust.spy(function ()
-        print('>walkInit')
-      end)
-      local walkTick = lust.spy(function ()
-        print('>walkTick')
-      end)
+      local idleInit = lust.spy(function () end)
+      local idleTick = lust.spy(function () end)
+      local walkInit = lust.spy(function () end)
+      local walkTick = lust.spy(function () end)
 
       -- forAtLeast value increases with each call
       local calls = 0;
