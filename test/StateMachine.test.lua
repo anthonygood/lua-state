@@ -135,13 +135,13 @@ describe('StateMachine', function()
       expect(#tick1).to.equal(0)
       expect(#tick2).to.equal(0)
 
-      machine.process({ walk = false });
-      machine.process({ walk = false });
+      machine.process({ walk = false })
+      machine.process({ walk = false })
 
       expect(#tick1).to.equal(2)
       expect(#tick2).to.equal(0)
 
-      machine.process({ walk = true });
+      machine.process({ walk = true })
       -- neither idle nor walk state should tick on transition
       expect(#tick1).to.equal(2)
       expect(#tick2).to.equal(0)
@@ -201,7 +201,7 @@ describe('StateMachine', function()
   end)
 
   describe('forAtLeast', function ()
-    it('forAtLeast can declare minTicks before state can transition', function ()
+    it('can declare minTicks before state can transition', function ()
       local idleInit = lust.spy(function () end)
       local walkInit = lust.spy(function () end)
       local walkTick = lust.spy(function () end)
@@ -291,6 +291,117 @@ describe('StateMachine', function()
       expect(#idleInit).to.equal(2)
       expect(#walkInit).to.equal(2)
       expect(#walkTick).to.equal(4)
+    end)
+
+    it('accepts function to define minTicks for transition state', function ()
+      local idleInit = lust.spy(function ()
+        print('>idleInit')
+      end)
+      local idleCount = 0
+      local idleTick = lust.spy(function ()
+        idleCount = idleCount + 1
+        print('>idleTick ' .. idleCount)
+      end)
+      local walkInit = lust.spy(function ()
+        print('>walkInit')
+      end)
+      local walkTick = lust.spy(function ()
+        print('>walkTick')
+      end)
+
+      -- forAtLeast value increases with each call
+      local calls = 0;
+      local forAtLeastFn = function () calls = calls + 1; return calls end
+
+      -- Should call idleTick once
+      local machine = StateMachine('idle').andThen(idleInit).tick(idleTick).forAtLeast(forAtLeastFn)
+        .transitionTo('walk').when(function (data) return data.walk end)
+        -- Should call walkTick twice
+        .andThen(walkInit).tick(walkTick).forAtLeast(forAtLeastFn)
+        .state('walk').transitionTo('idle').when(function (data) return not data.walk end)
+        .init()
+
+      expect(#idleInit).to.equal(1)
+      expect(#idleTick).to.equal(0)
+
+      expect(#walkInit).to.equal(0)
+      expect(#walkTick).to.equal(0)
+
+      -- Doesn't walk yet, because must tick forAtLeast 1
+      machine.process({ walk = true })
+      expect(#idleInit).to.equal(1)
+      expect(#idleTick).to.equal(1)
+
+      expect(#walkInit).to.equal(0)
+      expect(#walkTick).to.equal(0)
+
+      -- Now walks, because idle ticked once
+      machine.process({ walk = true })
+      expect(#idleInit).to.equal(1)
+      expect(#idleTick).to.equal(1)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(0)
+
+      -- Doesn't idle yet, because must tick forAtLeast 2
+      machine.process({ walk = false })
+      expect(#idleInit).to.equal(1)
+      expect(#idleTick).to.equal(1)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(1)
+
+      -- Doesn't idle yet, because must tick forAtLeast 2
+      machine.process({ walk = false })
+      expect(#idleInit).to.equal(1)
+      expect(#idleTick).to.equal(1)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(2)
+
+      -- Idles again
+      machine.process({ walk = false })
+      expect(#idleInit).to.equal(2)
+      expect(#idleTick).to.equal(1)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(2)
+
+      -- Should idle for 3 ticks...
+      machine.process({ walk = true })
+
+      expect(#idleInit).to.equal(2)
+      expect(#idleTick).to.equal(2)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(2)
+
+      machine.process({ walk = true })
+
+      expect(#idleInit).to.equal(2)
+      expect(#idleTick).to.equal(3)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(2)
+
+      machine.process({ walk = true })
+
+      print('#walkInit ' .. #walkInit .. ' #walkTick' .. #walkTick)
+
+      expect(#idleInit).to.equal(2)
+      expect(#idleTick).to.equal(4)
+
+      expect(#walkInit).to.equal(1)
+      expect(#walkTick).to.equal(2)
+
+      -- ...and then walk
+      machine.process({ walk = true })
+
+      expect(#idleInit).to.equal(2)
+      expect(#idleTick).to.equal(4)
+
+      expect(#walkInit).to.equal(2)
+      expect(#walkTick).to.equal(2)
     end)
   end)
 end)
