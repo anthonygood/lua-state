@@ -1,5 +1,6 @@
 local lust = require 'lib/lust'
-local describe, it, expect = lust.describe, lust.it, lust.expect
+local utils = require 'test/utils'
+local describe, it, expect, pluck = lust.describe, lust.it, lust.expect, utils.pluck
 
 local StateMachine = require 'src/StateMachine'
 
@@ -59,10 +60,10 @@ describe('StateMachine', function()
     local machine = StateMachine('idle')
       .transitionTo('walking').when(function (data) return data.walk or data.key == '<walk>' end)
       .state('walking')
-      .transitionTo('jumping').when(function (data) return data.jump end).orWhen(function(data) return data.jump == '<jump>' end)
+      .transitionTo('jumping').when(pluck('jump')).orWhen(function(data) return data.jump == '<jump>' end)
       -- Can only transition to idle from jumping
       .state('jumping')
-      .transitionTo('idle').when(function (data) return data.idle end).orWhen(function (data) return data.key == '<idle>' end)
+      .transitionTo('idle').when(pluck('idle')).orWhen(function (data) return data.key == '<idle>' end)
 
     expect(machine.currentState()).to.be('idle')
 
@@ -87,7 +88,7 @@ describe('StateMachine', function()
     it('invokes callback when transitioning to new state', function ()
       local mock = lust.spy(function () end)
       local machine = StateMachine('idle')
-        .transitionTo('walk').when(function (data) return data.walk end).andThen(mock)
+        .transitionTo('walk').when(pluck('walk')).andThen(mock)
 
       expect(#mock).to.equal(0)
 
@@ -97,7 +98,7 @@ describe('StateMachine', function()
     it('also works with the inverse construction', function ()
       local mock = lust.spy(function () end)
       local machine = StateMachine('idle')
-        .transitionTo('walk').andThen(mock).when(function (data) return data.walk end)
+        .transitionTo('walk').andThen(mock).when(pluck('walk'))
 
       expect(#mock).to.equal(0)
 
@@ -108,7 +109,7 @@ describe('StateMachine', function()
       local init1 = lust.spy(function () end)
       local init2 = lust.spy(function () end)
       local machine = StateMachine('idle').andThen(init1)
-        .transitionTo('walk').andThen(init2).when(function (data) return data.walk end)
+        .transitionTo('walk').andThen(init2).when(pluck('walk'))
 
       expect(#init1).to.equal(0)
       expect(#init2).to.equal(0)
@@ -129,7 +130,7 @@ describe('StateMachine', function()
       local tick2 = lust.spy(function () end)
 
       local machine = StateMachine('idle').tick(tick1)
-        .transitionTo('walk').when(function (data) return data.walk end)
+        .transitionTo('walk').when(pluck('walk'))
         .state('walk').tick(tick2)
 
       expect(#tick1).to.equal(0)
@@ -161,7 +162,7 @@ describe('StateMachine', function()
       local walkTick = lust.spy(function () end)
       local neverCall = lust.spy(function () end)
       local machine = StateMachine('idle').andThen(idleInit)
-        .transitionTo('walk').when(function (data) return data.walk end)
+        .transitionTo('walk').when(pluck('walk'))
         .transitionTo('never').when(function () return false end) -- Never transition
         .state('walk').andThen(walkInit).tick(walkTick)
         .transitionTo('idle').when(function (data) return not data.walk end)
@@ -195,7 +196,7 @@ describe('StateMachine', function()
       expect(function ()
         return StateMachine('idle')
           .transitionTo('walk')
-          .state('walk').when(function (data) return data.walk end).andThen(lust.spy(function() end))
+          .state('walk').when(pluck('walk')).andThen(lust.spy(function() end))
       end).to.fail()
     end)
   end)
@@ -208,7 +209,7 @@ describe('StateMachine', function()
 
       -- No idle tick callback, so should no-op for two ticks
       local machine = StateMachine('idle').andThen(idleInit).forAtLeast(2)
-        .transitionTo('walk').when(function (data) return data.walk end).orWhen(function (data) return data.run end)
+        .transitionTo('walk').when(pluck('walk')).orWhen(pluck('run'))
         -- Expect walkTick to be called for 4 ticks
         .andThen(walkInit).tick(walkTick).forAtLeast(4)
         .state('walk').transitionTo('idle').when(function (data) return not data.walk end)
@@ -305,7 +306,7 @@ describe('StateMachine', function()
 
       -- Should call idleTick once
       local machine = StateMachine('idle').andThen(idleInit).tick(idleTick).forAtLeast(forAtLeastFn)
-        .transitionTo('walk').when(function (data) return data.walk end)
+        .transitionTo('walk').when(pluck('walk'))
         -- Should call walkTick twice
         .andThen(walkInit).tick(walkTick).forAtLeast(forAtLeastFn)
         .state('walk').transitionTo('idle').when(function (data) return not data.walk end)
@@ -397,7 +398,7 @@ describe('StateMachine', function()
     it('can subscribe to state transition events', function ()
       local onWalk = lust.spy(function () end)
       local machine = StateMachine('idle')
-        .transitionTo('walk').when(function (data) return data.walk end)
+        .transitionTo('walk').when(pluck('walk'))
         .on('walk', onWalk)
 
       expect(#onWalk).to.equal(0)
@@ -415,7 +416,7 @@ describe('StateMachine', function()
       local onWalk2 = lust.spy(function () end)
 
       local machine = StateMachine('idle')
-        .transitionTo('walk').when(function (data) return data.walk end)
+        .transitionTo('walk').when(pluck('walk'))
         .state('walk').transitionTo('idle').when(function (data) return not data.walk end)
         .on('walk', onWalk)
         .on('walk', onWalk2)
