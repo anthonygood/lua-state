@@ -1,22 +1,19 @@
 local lust = require 'lib/lust'
-local describe, it, expect = lust.describe, lust.it, lust.expect
+local utils = require 'test/utils'
 
+local describe, it, expect, pluck = lust.describe, lust.it, lust.expect, utils.pluck
 local StateMachine = require 'src/StateMachine'
 local FlightRecorder = require 'src/FlightRecorder'
-
-local pluck = function (key) return
-  function (data) return data[key] end
-end
 
 local getStateMachine = function ()
   return StateMachine('idle')
     .transitionTo('walking').when(pluck('walk'))
-    .transitionTo('jumping').when(function (data) return data.jump end)
+    .transitionTo('jumping').when(pluck('jump'))
     .state('walking')
-    .transitionTo('jumping').when(function (data) return data.jump end)
+    .transitionTo('jumping').when(pluck('jump'))
     -- Can only transition to idle from jumping
     .state('jumping')
-    .transitionTo('idle').when(function (data) return data.idle end)
+    .transitionTo('idle').when(pluck('idle'))
 end
 
 local ticks = {
