@@ -392,4 +392,56 @@ describe('StateMachine', function()
       expect(#walkTick).to.equal(2)
     end)
   end)
+
+  describe('events', function ()
+    it('can subscribe to state transition events', function ()
+      local onWalk = lust.spy(function () end)
+      local machine = StateMachine('idle')
+        .transitionTo('walk').when(function (data) return data.walk end)
+        .on('walk', onWalk)
+
+      expect(#onWalk).to.equal(0)
+
+      machine.process({})
+      expect(#onWalk).to.equal(0)
+
+      machine.process({ walk = true})
+      expect(#onWalk).to.equal(1)
+      expect(onWalk[1][1].walk).to.be(true)
+    end)
+
+    it('correctly calls multiple subscribers for multiple state changes', function ()
+      local onWalk = lust.spy(function () end)
+      local onWalk2 = lust.spy(function () end)
+
+      local machine = StateMachine('idle')
+        .transitionTo('walk').when(function (data) return data.walk end)
+        .state('walk').transitionTo('idle').when(function (data) return not data.walk end)
+        .on('walk', onWalk)
+        .on('walk', onWalk2)
+
+      machine.process({})
+      expect(#onWalk).to.equal(0)
+      expect(#onWalk2).to.equal(0)
+
+      machine.process({ walk = true })
+      expect(#onWalk).to.equal(1)
+      expect(#onWalk2).to.equal(1)
+
+      -- Don't call again on tick
+      machine.process({ walk = true })
+      expect(#onWalk).to.equal(1)
+      expect(#onWalk2).to.equal(1)
+
+      -- Don't call again on transition to idle
+      machine.process({ walk = false })
+      expect(#onWalk).to.equal(1)
+      expect(#onWalk2).to.equal(1)
+
+      -- Call again on second transition to walk
+      machine.process({ walk = true })
+      expect(#onWalk).to.equal(2)
+      expect(#onWalk2).to.equal(2)
+    end)
+  end)
 end)
