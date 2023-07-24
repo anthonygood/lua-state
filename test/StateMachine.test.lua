@@ -1,7 +1,7 @@
 local lust = require 'lib/lust'
 local describe, it, expect = lust.describe, lust.it, lust.expect
 
-local StateMachine = require 'src/state/StateMachine'
+local StateMachine = require 'src/StateMachine'
 
 describe('StateMachine', function()
   it('can be instantiated', function ()
