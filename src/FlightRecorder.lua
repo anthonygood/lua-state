@@ -9,6 +9,7 @@ end
 
 local FlightRecorder = function (machines)
   local records = {}
+  local deltaKey = machines.deltaKey or 'delta'
   for _, machine in ipairs(machines) do
     local currentStateName, currentDuration = '', 0
 
@@ -27,13 +28,14 @@ local FlightRecorder = function (machines)
     end
 
     machine.on('tick', function (data)
-      assert(data.delta, 'No "delta" value passed in tick callback invocation')
+      local delta = data[deltaKey]
+      assert(delta, 'No "'.. deltaKey ..'" attribute found for delta value in tick callback invocation')
 
       local record = records[currentStateName]
 
       if (record) then
-        record.time = record.time + data.delta
-        currentDuration = currentDuration + data.delta
+        record.time = record.time + delta
+        currentDuration = currentDuration + delta
 
         if (record.longest < currentDuration) then
           record.longest = currentDuration

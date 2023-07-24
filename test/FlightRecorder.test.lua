@@ -116,5 +116,25 @@ describe('FlightRecorder', function ()
     expect(recorder.left.longest).to.equal(10)
     expect(recorder.right.longest).to.equal(30)
   end)
+
+  it('can specify custom delta key to read time delta from tick payload', function ()
+    local deltaKey = 'custom-delta-key'
+    local machine = getStateMachine()
+    local recorder = FlightRecorder({ machine, deltaKey = deltaKey })
+
+    machine.init()
+
+    for _, key in pairs(ticks) do
+      machine.process({ [key] = true, [deltaKey] = 9 })
+    end
+
+    expect(recorder.idle.time).to.equal(27)
+    expect(recorder.walking.time).to.equal(36)
+    expect(recorder.jumping.time).to.equal(18)
+
+    expect(recorder.idle.longest).to.equal(18)
+    expect(recorder.walking.longest).to.equal(36)
+    expect(recorder.jumping.longest).to.equal(9)
+  end)
 end)
 
